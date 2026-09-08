@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurum — Smart Investment Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ══════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════ */
+:root {
+  --ink:      #07090f;
+  --ink-2:    #0d1020;
+  --ink-3:    #141828;
+  --surface:  rgba(255,255,255,0.03);
+  --surface-2:rgba(255,255,255,0.06);
+  --surface-3:rgba(255,255,255,0.10);
+  --gold:     #c8a96e;
+  --gold-2:   #e8cc94;
+  --gold-3:   #f5e4bb;
+  --gold-dim: rgba(200,169,110,0.15);
+  --gold-glow:rgba(200,169,110,0.08);
+  --slate:    #8b96ab;
+  --slate-2:  #b0baca;
+  --ice:      #dce8f5;
+  --green:    #4ade9e;
+  --green-dim:rgba(74,222,158,0.12);
+  --red:      #f46a6a;
+  --red-dim:  rgba(244,106,106,0.12);
+  --amber:    #f5b944;
+  --amber-dim:rgba(245,185,68,0.12);
+  --border:   rgba(255,255,255,0.07);
+  --border-gold:rgba(200,169,110,0.25);
+  --ff-display:'Cormorant Garamond', Georgia, serif;
+  --ff-ui:     'Syne', sans-serif;
+  --ff-mono:   'JetBrains Mono', monospace;
+  --ease-expo: cubic-bezier(0.16,1,0.3,1);
+  --ease-back: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--ff-ui);
+  background: var(--ink);
+  color: var(--ice);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ── CUSTOM CURSOR ── */
+.cursor {
+  position: fixed; width: 8px; height: 8px;
+  background: var(--gold); border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: transform 0.1s, width 0.3s var(--ease-back), height 0.3s var(--ease-back), background 0.3s;
+  mix-blend-mode: screen;
+}
+.cursor-ring {
+  position: fixed; width: 32px; height: 32px;
+  border: 1px solid rgba(200,169,110,0.4); border-radius: 50%;
+  pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: all 0.15s var(--ease-expo);
+}
+.cursor.expand { width: 16px; height: 16px; }
+.cursor-ring.expand { width: 48px; height: 48px; border-color: rgba(200,169,110,0.2); }
+
+/* ── CANVAS BG ── */
+#bg-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; opacity: 0.6;
+}
+
+/* ── NOISE OVERLAY ── */
+.noise {
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* ── LAYOUT ── */
+.shell { position: relative; z-index: 2; min-height: 100vh; }
+
+/* ══════════════════════════════════════════
+   NAV
+══════════════════════════════════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 20px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(7,9,15,0.7);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  animation: slideDown 0.8s var(--ease-expo) both;
+}
+
+.nav-brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.nav-logo {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border-gold);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-display); font-size: 18px; color: var(--gold);
+  font-style: italic; font-weight: 600;
+}
+.nav-name {
+  font-family: var(--ff-display); font-size: 22px; font-weight: 600;
+  letter-spacing: 0.5px; color: var(--ice);
+}
+.nav-name span { color: var(--gold); }
+
+.nav-pills {
+  display: flex; gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 4px;
+}
+.nav-pill {
+  padding: 8px 20px; border-radius: 100px;
+  font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; border: none; background: transparent;
+  color: var(--slate); transition: all 0.25s var(--ease-expo);
+  white-space: nowrap;
+}
+.nav-pill.active {
+  background: var(--gold-dim);
+  color: var(--gold-2);
+  border: 1px solid var(--border-gold);
+}
+.nav-pill:hover:not(.active) { color: var(--ice); }
+
+.nav-live {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--slate); font-family: var(--ff-mono);
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+/* ══════════════════════════════════════════
+   HERO
+══════════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 140px 40px 80px;
+  position: relative;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--ff-mono); font-size: 11px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 28px;
+  opacity: 0; animation: fadeUp 0.8s 0.3s var(--ease-expo) forwards;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content:''; width: 40px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold));
+}
+.hero-eyebrow::after { background: linear-gradient(90deg, var(--gold), transparent); }
+
+.hero-title {
+  font-family: var(--ff-display); font-size: clamp(52px, 7vw, 92px);
+  font-weight: 300; line-height: 1.0; letter-spacing: -1px;
+  margin-bottom: 24px;
+  opacity: 0; animation: fadeUp 0.9s 0.5s var(--ease-expo) forwards;
+}
+.hero-title em {
+  font-style: italic; color: var(--gold);
+  display: block;
+}
+
+.hero-sub {
+  max-width: 480px; margin: 0 auto 48px;
+  font-size: 16px; color: var(--slate); line-height: 1.7; font-weight: 400;
+  opacity: 0; animation: fadeUp 0.9s 0.7s var(--ease-expo) forwards;
+}
+
+.hero-cta {
+  display: inline-flex; gap: 16px; align-items: center;
+  opacity: 0; animation: fadeUp 0.9s 0.9s var(--ease-expo) forwards;
+}
+
+.btn-gold {
+  padding: 16px 36px; border-radius: 100px;
+  background: var(--gold); color: var(--ink);
+  font-family: var(--ff-ui); font-size: 13px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+  border: none; transition: all 0.3s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.btn-gold::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.2);
+  transform: translateX(-101%); transition: transform 0.4s var(--ease-expo);
+}
+.btn-gold:hover::after { transform: translateX(0); }
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(200,169,110,0.3); }
+
+.btn-ghost {
+  padding: 15px 32px; border-radius: 100px;
+  background: transparent; color: var(--slate);
+  border: 1px solid var(--border);
+  font-family: var(--ff-ui); font-size: 13px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-ghost:hover { border-color: var(--border-gold); color: var(--gold-2); }
+
+/* ── TICKER ── */
+.ticker-wrap {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-top: 1px solid var(--border);
+  background: rgba(7,9,15,0.8);
+  overflow: hidden; padding: 14px 0;
+  opacity: 0; animation: fadeIn 1s 1.2s forwards;
+}
+.ticker-inner {
+  display: flex; gap: 0;
+  animation: ticker 28s linear infinite;
+  white-space: nowrap;
+}
+.tick-item {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 0 40px;
+  font-family: var(--ff-mono); font-size: 11px;
+  border-right: 1px solid var(--border);
+}
+.tick-name { color: var(--slate); letter-spacing: 1px; text-transform: uppercase; }
+.tick-val  { color: var(--ice); font-weight: 500; }
+.tick-chg.up   { color: var(--green); }
+.tick-chg.down { color: var(--red); }
+
+/* ══════════════════════════════════════════
+   MAIN DASHBOARD
+══════════════════════════════════════════ */
+.dashboard {
+  max-width: 1400px; margin: 0 auto;
+  padding: 40px 48px 100px;
+  display: none;
+}
+.dashboard.visible { display: block; }
+
+/* ── SECTION HEADER ── */
+.section-hdr {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 32px; padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.section-title {
+  font-family: var(--ff-display); font-size: 38px; font-weight: 400;
+  line-height: 1; color: var(--ice);
+}
+.section-title span { color: var(--gold); font-style: italic; }
+.section-badge {
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--slate);
+  border: 1px solid var(--border); border-radius: 100px;
+  padding: 6px 14px;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s var(--ease-expo);
+}
+.panel::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 10%, var(--gold-dim) 50%, transparent 90%);
+}
+.panel:hover { border-color: var(--border-gold); }
+
+.panel-label {
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+}
+.panel-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── FORM INPUTS ── */
+.input-group { margin-bottom: 16px; }
+.input-label {
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--slate); margin-bottom: 8px; display: block;
+}
+.input-wrap { position: relative; }
+.input-icon {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; pointer-events: none; opacity: 0.6;
+}
+.input-wrap input,
+.input-wrap select {
+  width: 100%; padding: 14px 16px 14px 42px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px; color: var(--ice);
+  font-family: var(--ff-ui); font-size: 15px;
+  outline: none; transition: all 0.25s;
+  appearance: none;
+}
+.input-wrap input:focus,
+.input-wrap select:focus {
+  border-color: var(--gold); background: var(--gold-glow);
+  box-shadow: 0 0 0 4px rgba(200,169,110,0.08);
+}
+.input-wrap input::placeholder { color: rgba(139,150,171,0.5); }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+select option { background: #141828; }
+
+.input-wrap.no-icon input,
+.input-wrap.no-icon select { padding-left: 16px; }
+
+/* ── ACTION BTN ── */
+.action-btn {
+  width: 100%; padding: 16px;
+  background: linear-gradient(135deg, #8a6c1e 0%, var(--gold) 50%, var(--gold-2) 100%);
+  background-size: 200% 200%; background-position: left;
+  color: var(--ink); border: none; border-radius: 12px;
+  font-family: var(--ff-ui); font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+  transition: all 0.4s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.action-btn:hover {
+  background-position: right;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(200,169,110,0.3);
+}
+.action-btn:active { transform: translateY(0); }
+.action-btn.loading { opacity: 0.7; pointer-events: none; }
+.action-btn.loading::after {
+  content: ''; position: absolute; right: 20px; top: 50%;
+  transform: translateY(-50%);
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.3); border-top-color: var(--ink);
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── STATS GRID ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+}
+.stat-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px; transition: all 0.3s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--gold-dim), transparent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s var(--ease-expo);
+}
+.stat-card:hover { transform: translateY(-3px); border-color: var(--border-gold); }
+.stat-card:hover::before { transform: scaleX(1); }
+.stat-icon { font-size: 18px; margin-bottom: 12px; display: block; }
+.stat-lbl { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.stat-val { font-family: var(--ff-display); font-size: 24px; font-weight: 600; color: var(--gold-2); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--slate); margin-top: 4px; }
+
+/* ── ALLOCATION BARS ── */
+.alloc-bar-item { margin-bottom: 18px; }
+.alloc-bar-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.alloc-bar-name { font-size: 12px; color: var(--slate-2); }
+.alloc-bar-pct { font-family: var(--ff-mono); font-size: 12px; color: var(--gold-2); }
+.alloc-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.alloc-fill { height: 100%; border-radius: 2px; transition: width 1.4s var(--ease-expo); }
+
+/* ── RISK SCORE RING ── */
+.score-wrap { display: flex; align-items: center; gap: 28px; margin-bottom: 24px; }
+.score-ring {
+  width: 100px; height: 100px; flex-shrink: 0;
+  border-radius: 50%; border: 3px solid;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative;
+}
+.score-ring svg { position: absolute; inset: -3px; width: calc(100% + 6px); height: calc(100% + 6px); }
+.score-num { font-family: var(--ff-display); font-size: 28px; font-weight: 600; line-height: 1; }
+.score-denom { font-size: 11px; color: var(--slate); }
+.score-meta { flex: 1; }
+.score-status { font-family: var(--ff-display); font-size: 22px; font-weight: 500; margin-bottom: 6px; }
+.score-desc { font-size: 12px; color: var(--slate); line-height: 1.6; }
+
+/* ── HEALTH BAR ── */
+.h-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.h-bar-lbl { font-family: var(--ff-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--slate); width: 120px; flex-shrink: 0; }
+.h-bar-t { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.h-bar-f { height: 100%; border-radius: 3px; transition: width 1.2s 0.3s var(--ease-expo); }
+.h-bar-v { font-family: var(--ff-mono); font-size: 11px; color: var(--gold-2); width: 40px; text-align: right; }
+
+/* ── REBALANCE TABLE ── */
+.rebal-table { width: 100%; border-collapse: collapse; }
+.rebal-table th {
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--slate); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.rebal-table td { padding: 14px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; }
+.rebal-table tr:last-child td { border-bottom: none; }
+.rebal-table tr:hover td { background: var(--surface-2); }
+.change-up   { color: var(--green); font-family: var(--ff-mono); font-size: 13px; font-weight: 500; }
+.change-down { color: var(--red);   font-family: var(--ff-mono); font-size: 13px; font-weight: 500; }
+.change-flat { color: var(--slate); font-family: var(--ff-mono); font-size: 13px; }
+
+/* ── CRASH SIMULATION ── */
+.crash-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.crash-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; text-align: center;
+}
+.crash-lbl { font-family: var(--ff-mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.crash-val { font-family: var(--ff-display); font-size: 20px; font-weight: 600; }
+.crash-val.loss { color: var(--red); }
+.crash-val.gain { color: var(--green); }
+.crash-val.neutral { color: var(--ice); }
+
+.slider-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.slider-lbl { font-family: var(--ff-mono); font-size: 11px; color: var(--slate); white-space: nowrap; }
+.slider-val { font-family: var(--ff-mono); font-size: 16px; font-weight: 500; color: var(--red); min-width: 48px; text-align: right; }
+input[type=range] {
+  flex: 1; -webkit-appearance: none; height: 4px;
+  background: rgba(255,255,255,0.08); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--gold);
+  cursor: pointer; border: 3px solid var(--ink-2);
+  transition: transform 0.2s var(--ease-back);
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+/* ── AI ADVISOR BOX ── */
+.advisor-box {
+  background: var(--gold-glow);
+  border: 1px solid var(--border-gold);
+  border-radius: 16px; padding: 24px;
+  position: relative; overflow: hidden;
+}
+.advisor-box::before {
+  content: '"'; position: absolute; right: 20px; top: 10px;
+  font-family: var(--ff-display); font-size: 80px; color: var(--gold-dim);
+  line-height: 1; pointer-events: none;
+}
+.advisor-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.advisor-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gold-dim); border: 1px solid var(--border-gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-display); font-size: 14px; color: var(--gold); font-style: italic;
+}
+.advisor-name { font-size: 12px; font-weight: 600; color: var(--gold-2); }
+.advisor-role { font-size: 10px; color: var(--slate); }
+.advisor-text { font-size: 14px; color: var(--slate-2); line-height: 1.8; }
+.typing-cursor { display: inline-block; width: 2px; height: 14px; background: var(--gold); animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+
+/* ── SIP ── */
+.sip-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
+
+/* ── SUGGESTION CARDS ── */
+.suggest-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+.suggest-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px;
+  transition: all 0.3s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.suggest-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--gold-glow); opacity: 0;
+  transition: opacity 0.3s;
+}
+.suggest-card:hover { border-color: var(--border-gold); transform: translateY(-4px); }
+.suggest-card:hover::after { opacity: 1; }
+.suggest-card > * { position: relative; z-index: 1; }
+.suggest-name { font-size: 15px; font-weight: 600; color: var(--ice); margin-bottom: 6px; }
+.suggest-desc { font-size: 12px; color: var(--slate); line-height: 1.6; margin-bottom: 12px; }
+.suggest-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.stag {
+  font-family: var(--ff-mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 100px;
+  border: 1px solid var(--border-gold); color: var(--gold-2);
+  background: var(--gold-dim);
+}
+.stag.risk-low    { border-color: rgba(74,222,158,0.3); color: var(--green); background: rgba(74,222,158,0.08); }
+.stag.risk-medium { border-color: rgba(245,185,68,0.3); color: var(--amber); background: rgba(245,185,68,0.08); }
+.stag.risk-high   { border-color: rgba(244,106,106,0.3); color: var(--red);   background: rgba(244,106,106,0.08); }
+
+/* ── WARN BOX ── */
+.warn-box {
+  background: var(--red-dim); border: 1px solid rgba(244,106,106,0.25);
+  border-radius: 12px; padding: 16px 18px;
+  font-size: 13px; color: #f9a8a8; line-height: 1.7;
+  margin-top: 16px;
+}
+.success-box {
+  background: var(--green-dim); border: 1px solid rgba(74,222,158,0.25);
+  border-radius: 12px; padding: 16px 18px;
+  font-size: 13px; color: #86efca; line-height: 1.7;
+  margin-top: 16px;
+}
+
+/* ── RISK BADGE ── */
+.risk-badge {
+  display: inline-flex; flex-direction: column; align-items: center;
+  padding: 14px 22px; border-radius: 14px; border: 2px solid;
+  font-weight: 700; font-size: 18px; letter-spacing: 1px; text-transform: uppercase;
+  font-family: var(--ff-mono); flex-shrink: 0; min-width: 110px;
+}
+.risk-badge small { font-size: 9px; font-weight: 500; letter-spacing: 2px; opacity: 0.8; margin-bottom: 4px; }
+.risk-H { border-color: var(--red);   color: var(--red);   background: var(--red-dim); }
+.risk-M { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+.risk-L { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+/* ── EMPTY STATE ── */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 80px 40px; min-height: 380px;
+  justify-content: center;
+}
+.empty-num {
+  font-family: var(--ff-display); font-size: 80px; font-weight: 300;
+  color: rgba(200,169,110,0.15); line-height: 1; margin-bottom: 20px;
+}
+.empty-title { font-family: var(--ff-display); font-size: 26px; color: var(--slate); margin-bottom: 10px; }
+.empty-sub { font-size: 13px; color: rgba(139,150,171,0.7); max-width: 280px; line-height: 1.7; }
+
+/* ── CHART ── */
+.chart-wrap { position: relative; width: 100%; }
+
+/* ── TWO COL ── */
+.two-col { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+.left-sticky { position: sticky; top: 100px; }
+.right-col { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── DISCLAIMER ── */
+.disclaimer {
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.5px;
+  color: rgba(139,150,171,0.5); line-height: 1.7; margin-top: 14px;
+  padding-top: 14px; border-top: 1px solid var(--border);
+}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════ */
+@keyframes slideDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeUp    { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn    { from { opacity:0; } to { opacity:1; } }
+@keyframes ticker    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes pulse     { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+@keyframes spin      { to{transform:translateY(-50%) rotate(360deg)} }
+@keyframes blink     { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes revealIn  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.reveal { opacity:0; animation: revealIn 0.6s var(--ease-expo) forwards; }
+.d1{animation-delay:0.05s}.d2{animation-delay:0.1s}.d3{animation-delay:0.15s}.d4{animation-delay:0.2s}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px) {
+  nav { padding:16px 24px; }
+  .nav-pills { display:none; }
+  .dashboard { padding:24px 20px 60px; }
+  .two-col { grid-template-columns:1fr; }
+  .left-sticky { position:static; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .crash-grid { grid-template-columns:1fr 1fr; }
+  .suggest-grid { grid-template-columns:1fr; }
+  .sip-stats { grid-template-columns:1fr 1fr 1fr; }
+}
+@media(max-width:600px) {
+  .hero-title { font-size:42px; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .sip-stats  { grid-template-columns:1fr; }
+}
+</style>
+</head>
+
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="noise"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<div class="shell">
+
+<!-- ══ NAV ══ -->
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">A</div>
+    <div class="nav-name">Aurum<span>.</span></div>
+  </div>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="goTab('planner')">Goal planner</button>
+    <button class="nav-pill" onclick="goTab('health')">Health score</button>
+    <button class="nav-pill" onclick="goTab('rebal')">Rebalancer</button>
+    <button class="nav-pill" onclick="goTab('crash')">Crash simulator</button>
+    <button class="nav-pill" onclick="goTab('sip')">SIP calculator</button>
+    <button class="nav-pill" onclick="goTab('suggest')">Suggestions</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="nav-live">
+      <div class="live-dot"></div> Markets live
+    </div>
+    <!-- User auth area -->
+    <div id="nav-auth" style="display:flex;align-items:center;gap:10px">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+</nav>
+
+<!-- ══ AI CHAT BUBBLE ══ -->
+<div id="chat-bubble" onclick="toggleChat()" title="Ask AI Advisor"
+  style="position:fixed;bottom:28px;right:28px;z-index:500;
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,#8a6c1e,#c8a96e,#e8cc94);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:0 8px 32px rgba(200,169,110,0.4);
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s;
+    font-size:22px;">
+  🤖
+</div>
+<div id="chat-badge" style="position:fixed;bottom:72px;right:28px;z-index:501;
+  background:#f46a6a;color:#fff;border-radius:100px;padding:3px 8px;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  font-family:'JetBrains Mono',monospace;display:none;">
+  AI LIVE
+</div>
+
+<!-- ══ AI CHAT PANEL ══ -->
+<div id="chat-panel" style="
+  position:fixed;bottom:96px;right:28px;z-index:499;
+  width:380px;max-height:560px;
+  background:rgba(13,16,32,0.98);
+  border:1px solid rgba(200,169,110,0.25);
+  border-radius:24px;
+  display:none;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,0.6);
+  overflow:hidden;
+  backdrop-filter:blur(24px);
+  animation:fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) both;">
+
+  <!-- Chat header -->
+  <div style="padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.07);
+    background:rgba(200,169,110,0.05);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;border-radius:50%;
+        background:rgba(200,169,110,0.15);border:1px solid rgba(200,169,110,0.3);
+        display:flex;align-items:center;justify-content:center;font-size:16px;">🤖</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#e8cc94;letter-spacing:0.5px">Aurum AI Advisor</div>
+        <div style="font-size:10px;color:#8b96ab;font-family:'JetBrains Mono',monospace;letter-spacing:1px">Powered by Gemini · India-focused</div>
+      </div>
+      <button onclick="toggleChat()" style="margin-left:auto;background:none;border:none;color:#8b96ab;cursor:pointer;font-size:18px;padding:4px">✕</button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px">
+    <div class="chat-msg ai" style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.15);border-radius:14px 14px 14px 4px;padding:14px 16px;font-size:13px;color:#b0baca;line-height:1.7;max-width:90%">
+      👋 Hi! I'm Aurum, your AI investment advisor powered by Gemini. Ask me anything about Indian investments — SIPs, mutual funds, tax-saving, portfolio strategy, and more.
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div style="padding:16px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0">
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <textarea id="chat-input" placeholder="Ask anything about investing..." rows="2"
+        style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+          border-radius:12px;color:#dce8f5;font-family:'Syne',sans-serif;font-size:13px;
+          padding:10px 14px;resize:none;outline:none;line-height:1.5;
+          transition:border-color 0.2s;"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+        onfocus="this.style.borderColor='rgba(200,169,110,0.4)'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)'"></textarea>
+      <button onclick="sendChat()" id="chat-send-btn"
+        style="width:40px;height:40px;border-radius:50%;
+          background:linear-gradient(135deg,#8a6c1e,#c8a96e);
+          border:none;cursor:pointer;font-size:16px;flex-shrink:0;
+          transition:transform 0.2s;display:flex;align-items:center;justify-content:center;"
+        onmouseover="this.style.transform='scale(1.1)'"
+        onmouseout="this.style.transform='scale(1)'">➤</button>
+    </div>
+    <div style="font-size:9px;color:rgba(139,150,171,0.4);margin-top:8px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px">
+      Educational only · Not SEBI-registered advice · Enter ↵ to send
+    </div>
+  </div>
+</div>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="hero">
+  <div>
+    <div class="hero-eyebrow">AI-Powered Investment Intelligence</div>
+    <h1 class="hero-title">
+      Your money,<br>
+      <em>working smarter.</em>
+    </h1>
+    <p class="hero-sub">Professional-grade portfolio analysis, goal planning, and AI-powered diversification — built for the modern Indian investor.</p>
+    <div class="hero-cta">
+      <button class="btn-gold" onclick="enterDashboard()">Start analysing &rarr;</button>
+      <button class="btn-ghost" onclick="goTab('sip');enterDashboard()">SIP calculator</button>
+    </div>
+  </div>
+  <div class="ticker-wrap">
+    <div class="ticker-inner" id="ticker"></div>
+  </div>
+</section>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="dashboard" id="dashboard">
+
+  <!-- ─ GOAL PLANNER ─ -->
+  <section id="tab-planner">
+    <div class="section-hdr">
+      <div class="section-title">Goal <span>Planner</span></div>
+      <div class="section-badge">01 / Goal Intelligence</div>
+    </div>
+    <div class="two-col">
+      <div class="left-sticky">
+        <div class="panel reveal d1">
+          <div class="panel-label">Configure your goal</div>
+          <div class="input-group">
+            <label class="input-label">I want to</label>
+            <div class="input-wrap"><span class="input-icon">🎯</span>
+              <select name="goal" id="p-goal">
+                <option value="house">Buy a house</option>
+                <option value="retirement">Retire comfortably</option>
+                <option value="car">Buy a car</option>
+                <option value="emergency">Emergency fund</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Target amount (₹)</label>
+            <div class="input-wrap"><span class="input-icon">💰</span>
+              <input type="number" id="p-target" value="5000000" min="0">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Monthly savings (₹)</label>
+            <div class="input-wrap"><span class="input-icon">📅</span>
+              <input type="number" id="p-monthly" value="15000" min="0">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Timeline (years)</label>
+            <div class="input-wrap"><span class="input-icon">📆</span>
+              <input type="number" id="p-years" value="10" min="1" max="40">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Expected return (%/yr)</label>
+            <div class="input-wrap"><span class="input-icon">📈</span>
+              <input type="number" id="p-ret" value="10" min="1" max="20">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Risk profile</label>
+            <div class="input-wrap"><span class="input-icon">⚖️</span>
+              <select id="p-risk">
+                <option value="conservative">Conservative</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="aggressive">Aggressive</option>
+              </select>
+            </div>
+          </div>
+          <button class="action-btn" id="p-btn" onclick="runGoalPlanner()">⚡ Analyse Goal</button>
+        </div>
+      </div>
+      <div class="right-col">
+        <div class="panel reveal d2" id="p-results">
+          <div class="empty">
+            <div class="empty-num">01</div>
+            <div class="empty-title">Enter your goal details</div>
+            <div class="empty-sub">Configure your target on the left and click Analyse to see your personalised projection.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─ HEALTH SCORE ─ -->
+  <section id="tab-health" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title">Financial <span>Health Score</span></div>
+      <div class="section-badge">02 / Portfolio Diagnostics</div>
+    </div>
+    <div class="two-col">
+      <div class="left-sticky">
+        <div class="panel reveal d1">
+          <div class="panel-label">Your financials</div>
+          <div class="input-group">
+            <label class="input-label">Monthly income (₹)</label>
+            <div class="input-wrap"><span class="input-icon">💵</span>
+              <input type="number" id="h-income" value="60000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Monthly expenses (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🧾</span>
+              <input type="number" id="h-exp" value="35000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Stocks (₹)</label>
+            <div class="input-wrap"><span class="input-icon">📈</span>
+              <input type="number" id="h-stocks" value="50000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Mutual Funds (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🏦</span>
+              <input type="number" id="h-mf" value="30000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Gold (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🪙</span>
+              <input type="number" id="h-gold" value="10000">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Fixed Deposit (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🔒</span>
+              <input type="number" id="h-fd" value="10000">
+            </div>
+          </div>
+          <button class="action-btn" id="h-btn" onclick="runHealth()">⚡ Calculate Score</button>
+        </div>
+      </div>
+      <div class="right-col">
+        <div class="panel reveal d2" id="h-results">
+          <div class="empty">
+            <div class="empty-num">68</div>
+            <div class="empty-title">Your score awaits</div>
+            <div class="empty-sub">Enter your income, expenses and investments to get a personalised financial health score.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─ REBALANCER ─ -->
+  <section id="tab-rebal" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title">Smart <span>Rebalancer</span></div>
+      <div class="section-badge">03 / Portfolio Optimisation</div>
+    </div>
+    <div class="two-col">
+      <div class="left-sticky">
+        <div class="panel reveal d1">
+          <div class="panel-label">Current portfolio</div>
+          <div class="input-group">
+            <label class="input-label">Stocks (₹)</label>
+            <div class="input-wrap"><span class="input-icon">📈</span><input type="number" id="r-stocks" value="70000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Mutual Funds (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🏦</span><input type="number" id="r-mf" value="20000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Gold (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🪙</span><input type="number" id="r-gold" value="5000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Fixed Deposit (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🔒</span><input type="number" id="r-fd" value="5000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Target risk profile</label>
+            <div class="input-wrap no-icon">
+              <select id="r-risk">
+                <option value="conservative">Conservative (30/30/20/20)</option>
+                <option value="moderate" selected>Moderate (50/25/15/10)</option>
+                <option value="aggressive">Aggressive (70/20/5/5)</option>
+              </select>
+            </div>
+          </div>
+          <button class="action-btn" id="r-btn" onclick="runRebal()">⚡ Suggest Rebalance</button>
+        </div>
+      </div>
+      <div class="right-col">
+        <div class="panel reveal d2" id="r-results">
+          <div class="empty">
+            <div class="empty-num">03</div>
+            <div class="empty-title">Portfolio optimiser</div>
+            <div class="empty-sub">Enter your current holdings and target risk profile to get a precise rebalancing plan.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─ CRASH SIMULATOR ─ -->
+  <section id="tab-crash" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title">Crash <span>Simulator</span></div>
+      <div class="section-badge">04 / Stress Testing</div>
+    </div>
+    <div class="two-col">
+      <div class="left-sticky">
+        <div class="panel reveal d1">
+          <div class="panel-label">Portfolio values</div>
+          <div class="input-group">
+            <label class="input-label">Stocks (₹)</label>
+            <div class="input-wrap"><span class="input-icon">📈</span><input type="number" id="c-stocks" value="50000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Mutual Funds (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🏦</span><input type="number" id="c-mf" value="30000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Gold (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🪙</span><input type="number" id="c-gold" value="10000"></div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Fixed Deposit (₹)</label>
+            <div class="input-wrap"><span class="input-icon">🔒</span><input type="number" id="c-fd" value="10000"></div>
+          </div>
+          <div class="input-group" style="margin-top:8px">
+            <label class="input-label">Market drop scenario</label>
+            <div class="slider-row">
+              <span class="slider-lbl">Crash severity</span>
+              <input type="range" id="c-drop" min="5" max="60" value="20" step="5" oninput="document.getElementById('c-drop-val').textContent='-'+this.value+'%';runCrash()">
+              <span class="slider-val" id="c-drop-val">-20%</span>
+            </div>
+          </div>
+          <button class="action-btn" id="c-btn" onclick="runCrash()">⚡ Simulate Crash</button>
+        </div>
+      </div>
+      <div class="right-col">
+        <div class="panel reveal d2" id="c-results">
+          <div class="empty">
+            <div class="empty-num">−20%</div>
+            <div class="empty-title">Stress test your portfolio</div>
+            <div class="empty-sub">See how a market crash affects each asset class, and how much gold protects you.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─ SIP ─ -->
+  <section id="tab-sip" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title">SIP <span>Growth Calculator</span></div>
+      <div class="section-badge">05 / Systematic Investment</div>
+    </div>
+    <div class="panel reveal d1">
+      <div class="panel-label">SIP parameters</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Monthly SIP (₹)</label>
+          <div class="input-wrap"><span class="input-icon">📅</span><input type="number" id="s-amt" value="5000" oninput="runSIP()"></div>
+        </div>
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Annual return (%)</label>
+          <div class="input-wrap"><span class="input-icon">📈</span><input type="number" id="s-ret" value="12" oninput="runSIP()"></div>
+        </div>
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Duration (years)</label>
+          <div class="input-wrap"><span class="input-icon">📆</span><input type="number" id="s-yrs" value="10" oninput="runSIP()"></div>
+        </div>
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Step-up per year (%)</label>
+          <div class="input-wrap"><span class="input-icon">⬆️</span><input type="number" id="s-step" value="10" oninput="runSIP()"></div>
+        </div>
+      </div>
+      <div class="sip-stats" id="s-stats"></div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="sip-chart" role="img" aria-label="SIP growth chart showing invested amount vs portfolio value over time">SIP growth chart</canvas>
+      </div>
+      <p class="disclaimer">Returns calculated using compound interest with annual step-up. Past performance is not indicative of future results. This is for educational purposes only.</p>
+    </div>
+  </section>
+
+  <!-- ─ SUGGESTIONS ─ -->
+  <section id="tab-suggest" style="display:none">
+    <div class="section-hdr">
+      <div class="section-title">Investment <span>Suggestions</span></div>
+      <div class="section-badge">06 / Education Engine</div>
+    </div>
+    <div class="panel reveal d1" style="margin-bottom:20px">
+      <div class="panel-label">Your profile</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end">
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Experience level</label>
+          <div class="input-wrap no-icon">
+            <select id="sg-exp" onchange="runSuggest()">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate" selected>Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group" style="margin:0">
+          <label class="input-label">Investment horizon</label>
+          <div class="input-wrap no-icon">
+            <select id="sg-horizon" onchange="runSuggest()">
+              <option value="short">Short-term (&lt;3 years)</option>
+              <option value="medium" selected>Medium-term (3–10 yrs)</option>
+              <option value="long">Long-term (10+ years)</option>
+            </select>
+          </div>
+        </div>
+        <button class="action-btn" id="sg-btn" onclick="runSuggest()" style="width:100%">⚡ Get Suggestions</button>
+      </div>
+    </div>
+    <div id="sg-results">
+      <div class="suggest-grid" id="sg-grid"></div>
+      <p class="disclaimer" style="margin-top:16px">Educational only — not a recommendation to buy specific securities. Consult a SEBI-registered investment advisor before making decisions.</p>
+    </div>
+  </section>
+
+</div><!-- /dashboard -->
+</div><!-- /shell -->
+
+<script>
+/* ══════════════════════════════════════════
+   ANIMATED BACKGROUND
+══════════════════════════════════════════ */
+(function(){
+  const c = document.getElementById('bg-canvas');
+  const ctx = c.getContext('2d');
+  let W, H, particles = [], lines = [];
+  function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for(let i=0;i<60;i++){
+    particles.push({
+      x: Math.random()*W, y: Math.random()*H,
+      r: Math.random()*1.5+0.3,
+      vx:(Math.random()-0.5)*0.2, vy:(Math.random()-0.5)*0.2,
+      a: Math.random()
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,169,110,${p.a*0.4})`;
+      ctx.fill();
+    });
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x;
+        const dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<120){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(200,169,110,${0.06*(1-d/120)})`;
+          ctx.lineWidth=0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══════════════════════════════════════════
+   CURSOR
+══════════════════════════════════════════ */
+(function(){
+  const cur=document.getElementById('cursor');
+  const ring=document.getElementById('cursor-ring');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
+  function animRing(){ rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; ring.style.left=Math.round(rx)+'px'; ring.style.top=Math.round(ry)+'px'; requestAnimationFrame(animRing); }
+  animRing();
+  document.querySelectorAll('button,a,[onclick],input,select').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ cur.classList.add('expand'); ring.classList.add('expand'); });
+    el.addEventListener('mouseleave',()=>{ cur.classList.remove('expand'); ring.classList.remove('expand'); });
+  });
+})();
+
+/* ══════════════════════════════════════════
+   TICKER
+══════════════════════════════════════════ */
+(function(){
+  const ticks=[
+    {name:'NIFTY 50',val:'24,853',chg:'+0.68%',up:true},
+    {name:'SENSEX',val:'81,463',chg:'+0.71%',up:true},
+    {name:'GOLD',val:'₹72,340/10g',chg:'+0.42%',up:true},
+    {name:'SBI FD 3Y',val:'6.80%',chg:'p.a.',up:true},
+    {name:'NIFTY MF IDX',val:'182.4',chg:'+0.55%',up:true},
+    {name:'USD/INR',val:'83.52',chg:'-0.12%',up:false},
+    {name:'NIFTY IT',val:'38,240',chg:'+1.2%',up:true},
+    {name:'NIFTY BANK',val:'51,820',chg:'+0.45%',up:true},
+  ];
+  const html=ticks.map(t=>`<div class="tick-item"><span class="tick-name">${t.name}</span><span class="tick-val">${t.val}</span><span class="tick-chg ${t.up?'up':'down'}">${t.chg}</span></div>`).join('');
+  document.getElementById('ticker').innerHTML=html+html;
+})();
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+let activeTab = 'planner';
+let sessionRisks = [];
+
+function enterDashboard(){
+  document.getElementById('hero').style.display='none';
+  document.getElementById('dashboard').classList.add('visible');
+  goTab('planner');
+  window.scrollTo(0,0);
+}
+
+function goTab(id){
+  document.querySelectorAll('.nav-pill').forEach((p,i)=>{
+    p.classList.toggle('active', ['planner','health','rebal','crash','sip','suggest'][i]===id);
+  });
+  ['planner','health','rebal','crash','sip','suggest'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===id?'block':'none';
+  });
+  activeTab=id;
+  if(!document.getElementById('dashboard').classList.contains('visible')) enterDashboard();
+  if(id==='sip') runSIP();
+  if(id==='suggest') runSuggest();
+}
+
+/* ══════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════ */
+function fmt(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
+function fmtCr(n){ return n>=10000000?'₹'+(n/10000000).toFixed(2)+'Cr': n>=100000?'₹'+(n/100000).toFixed(1)+'L': fmt(n); }
+
+function typeText(el, text, speed=18){
+  el.innerHTML='';
+  let i=0;
+  const cursor=document.createElement('span');
+  cursor.className='typing-cursor';
+  el.appendChild(cursor);
+  const iv=setInterval(()=>{
+    el.insertBefore(document.createTextNode(text.slice(i,i+2)),cursor);
+    i+=2;
+    if(i>=text.length){ clearInterval(iv); cursor.remove(); }
+  },speed);
+}
+
+function setLoading(btnId, yes){
+  const b=document.getElementById(btnId);
+  if(yes){ b.classList.add('loading'); b.textContent='Analysing...'; }
+  else { b.classList.remove('loading'); b.textContent=b.dataset.orig||'⚡ Analyse'; }
+}
+
+async function callAPI(route, body){
+  const r=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return r.json();
+}
+
+/* ══════════════════════════════════════════
+   CHART REGISTRY
+══════════════════════════════════════════ */
+const charts={};
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+/* ══════════════════════════════════════════
+   1. GOAL PLANNER
+══════════════════════════════════════════ */
+async function runGoalPlanner(){
+  const btn=document.getElementById('p-btn');
+  btn.dataset.orig='⚡ Analyse Goal';
+  btn.classList.add('loading'); btn.textContent='Analysing...';
+
+  const body={
+    goal: document.getElementById('p-goal').value,
+    target: +document.getElementById('p-target').value,
+    monthly: +document.getElementById('p-monthly').value,
+    years: +document.getElementById('p-years').value,
+    return_rate: +document.getElementById('p-ret').value,
+    risk_profile: document.getElementById('p-risk').value,
+    session_risks: sessionRisks,
+  };
+
+  let d;
+  try { d=await callAPI('/api/goal-planner', body); }
+  catch(e){
+    // fallback calc
+    const r=body.return_rate/100/12, m=body.years*12;
+    const fv=Math.round(body.monthly*(((Math.pow(1+r,m)-1)/r)*(1+r)));
+    const needed=Math.round(body.target/((((Math.pow(1+r,m)-1)/r)*(1+r))));
+    d={ projected:fv, needed, gap:fv-body.target, on_time:fv>=body.target,
+        delay_years: fv>=body.target?0:null,
+        ai_advice:'Based on your inputs, consider reviewing your monthly SIP amount to stay on track.',
+        behav_warn:null, session_risks:[...sessionRisks, body.risk_profile],
+        curve: Array.from({length:body.years+1},(_,y)=>({
+          year:y, value:Math.round(body.monthly*(((Math.pow(1+r,y*12)-1)/r)*(1+r))),
+          invested: body.monthly*y*12
+        }))
+      };
+  }
+
+  sessionRisks = d.session_risks||sessionRisks;
+  const onTime = d.on_time;
+  const riskLabel = body.risk_profile.charAt(0).toUpperCase()+body.risk_profile.slice(1);
+
+  const twist = onTime
+    ? `<div class="success-box">You are on track to reach your goal. At current pace, you could reach it <strong>${Math.round((d.projected-body.target)/body.monthly)} months early</strong>. Consider investing the surplus in an index fund.</div>`
+    : `<div class="warn-box">At your current savings rate, you will reach your goal <strong>${Math.abs(d.delay_years||0)} year${Math.abs(d.delay_years||0)!==1?'s':''} late</strong>. Increase your monthly SIP to <strong>${fmt(d.needed)}</strong> to stay on track.</div>`;
+
+  const labels = (d.curve||[]).map(p=>'Yr '+p.year);
+  const projData=(d.curve||[]).map(p=>p.value);
+  const invData=(d.curve||[]).map(p=>p.invested);
+  const targetLine=Array(labels.length).fill(body.target);
+
+  document.getElementById('p-results').innerHTML=`
+    <div class="panel-label">Projection — ${body.goal}</div>
+    <div class="stats-grid reveal d1" style="margin-bottom:20px">
+      <div class="stat-card"><span class="stat-icon">🎯</span><div class="stat-lbl">Target</div><div class="stat-val">${fmtCr(body.target)}</div><div class="stat-sub">Your goal</div></div>
+      <div class="stat-card"><span class="stat-icon">📊</span><div class="stat-lbl">Projected</div><div class="stat-val" style="color:${onTime?'var(--green)':'var(--red)'}">${fmtCr(d.projected)}</div><div class="stat-sub">At ${body.years} years</div></div>
+      <div class="stat-card"><span class="stat-icon">📅</span><div class="stat-lbl">SIP needed</div><div class="stat-val">${fmt(d.needed)}</div><div class="stat-sub">Per month</div></div>
+      <div class="stat-card"><span class="stat-icon">⚖️</span><div class="stat-lbl">Risk profile</div><div class="stat-val" style="font-size:18px">${riskLabel}</div><div class="stat-sub">Selected</div></div>
+    </div>
+    ${twist}
+    ${d.behav_warn?`<div class="warn-box" style="margin-top:12px">${d.behav_warn}</div>`:''}
+    <div class="chart-wrap" style="height:200px;margin:20px 0">
+      <canvas id="goal-chart" role="img" aria-label="Goal projection chart">Goal chart</canvas>
+    </div>
+    <div class="advisor-box reveal d3">
+      <div class="advisor-header">
+        <div class="advisor-avatar">A</div>
+        <div><div class="advisor-name">Aurum Advisor</div><div class="advisor-role">AI Financial Intelligence</div></div>
+      </div>
+      <div class="advisor-text" id="p-advice"></div>
+    </div>
+  `;
+
+  destroyChart('goal');
+  charts['goal']=new Chart(document.getElementById('goal-chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Projected',data:projData,borderColor:'#c8a96e',backgroundColor:'rgba(200,169,110,0.06)',fill:true,tension:0.4,pointRadius:2,borderWidth:2},
+      {label:'Invested',data:invData,borderColor:'rgba(139,150,171,0.5)',backgroundColor:'transparent',borderDash:[4,4],tension:0,pointRadius:0,borderWidth:1.5},
+      {label:'Target',data:targetLine,borderColor:'rgba(244,106,106,0.6)',backgroundColor:'transparent',borderDash:[3,3],pointRadius:0,borderWidth:1.5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(13,16,32,0.95)',borderColor:'rgba(200,169,110,0.3)',borderWidth:1,titleColor:'#c8a96e',bodyColor:'#b0baca',callbacks:{label:ctx=>ctx.dataset.label+': '+fmtCr(ctx.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8b96ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b96ab',font:{size:10},callback:v=>fmtCr(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+
+  typeText(document.getElementById('p-advice'), d.ai_advice||'Your financial plan looks solid. Stay consistent with your SIP and review quarterly.');
+  btn.classList.remove('loading'); btn.textContent='⚡ Analyse Goal';
+}
+
+/* ══════════════════════════════════════════
+   2. HEALTH SCORE
+══════════════════════════════════════════ */
+async function runHealth(){
+  const btn=document.getElementById('h-btn');
+  btn.classList.add('loading'); btn.textContent='Calculating...';
+  const body={
+    income:+document.getElementById('h-income').value,
+    expenses:+document.getElementById('h-exp').value,
+    stocks:+document.getElementById('h-stocks').value,
+    mutual:+document.getElementById('h-mf').value,
+    gold:+document.getElementById('h-gold').value,
+    fd:+document.getElementById('h-fd').value,
+  };
+  let d;
+  try { d=await callAPI('/api/health-score', body); }
+  catch(e){
+    const sv=body.income>0?(body.income-body.expenses)/body.income:0;
+    const total=body.stocks+body.mutual+body.gold+body.fd;
+    const sp=total>0?body.stocks/total:0;
+    const assets=[body.stocks,body.mutual,body.gold,body.fd].filter(x=>x>0).length;
+    const score=Math.round(Math.min(sv/0.3,1)*25+Math.min((1-body.expenses/body.income)/0.5,1)*20+(sp<=0.6?1:Math.max(0,1-(sp-0.6)/0.4))*30+(assets/4)*25);
+    d={score,status:score>=80?'Excellent':score>=65?'Good':score>=50?'Needs Improvement':'Critical',
+       breakdown:{savings_rate:Math.round(Math.min(sv/0.3,1)*100),expense_ratio:Math.round(Math.min((1-body.expenses/body.income)/0.5,1)*100),risk_balance:Math.round((sp<=0.6?1:Math.max(0,1-(sp-0.6)/0.4))*100),diversification:Math.round(assets/4*100)},
+       ai_advice:sp>0.7?'You are over-invested in risky assets. A market crash could significantly impact your savings. Rebalancing now protects your capital.':'Your portfolio is reasonably balanced. Consider increasing your SIP by 10% annually to build long-term wealth.'};
+  }
+  const col=d.score>=80?'var(--green)':d.score>=65?'var(--amber)':'var(--red)';
+  const barColors=['#378ADD','#4ade9e','#c8a96e','#7F77DD'];
+  const barLabels=['Savings rate','Expense ratio','Risk balance','Diversification'];
+  const barVals=[d.breakdown.savings_rate,d.breakdown.expense_ratio,d.breakdown.risk_balance,d.breakdown.diversification];
+
+  document.getElementById('h-results').innerHTML=`
+    <div class="panel-label">Financial health score</div>
+    <div class="score-wrap reveal d1">
+      <div class="score-ring" style="border-color:${col}">
+        <div class="score-num" style="color:${col}">${d.score}</div>
+        <div class="score-denom">/ 100</div>
+      </div>
+      <div class="score-meta">
+        <div class="score-status" style="color:${col}">${d.status}</div>
+        <div class="score-desc">Based on savings rate, expenses, risk balance & investment diversity</div>
+      </div>
+    </div>
+    <div id="h-bars" style="margin-bottom:20px">
+      ${barLabels.map((l,i)=>`
+        <div class="h-bar-row">
+          <div class="h-bar-lbl">${l}</div>
+          <div class="h-bar-t"><div class="h-bar-f" style="width:${barVals[i]}%;background:${barColors[i]}"></div></div>
+          <div class="h-bar-v">${barVals[i]}%</div>
+        </div>`).join('')}
+    </div>
+    <div class="advisor-box reveal d3">
+      <div class="advisor-header">
+        <div class="advisor-avatar">A</div>
+        <div><div class="advisor-name">Aurum Advisor</div><div class="advisor-role">Financial Health Analysis</div></div>
+      </div>
+      <div class="advisor-text" id="h-advice"></div>
+    </div>
+  `;
+  typeText(document.getElementById('h-advice'), d.ai_advice);
+  btn.classList.remove('loading'); btn.textContent='⚡ Calculate Score';
+}
+
+/* ══════════════════════════════════════════
+   3. REBALANCER
+══════════════════════════════════════════ */
+async function runRebal(){
+  const btn=document.getElementById('r-btn');
+  btn.classList.add('loading'); btn.textContent='Calculating...';
+  const body={
+    stocks:+document.getElementById('r-stocks').value,
+    mutual:+document.getElementById('r-mf').value,
+    gold:+document.getElementById('r-gold').value,
+    fd:+document.getElementById('r-fd').value,
+    risk:document.getElementById('r-risk').value,
+  };
+  const total=body.stocks+body.mutual+body.gold+body.fd;
+  let d;
+  try { d=await callAPI('/api/rebalance',body); }
+  catch(e){
+    const targets={conservative:{stocks:0.30,mutual:0.30,gold:0.20,fd:0.20},moderate:{stocks:0.50,mutual:0.25,gold:0.15,fd:0.10},aggressive:{stocks:0.70,mutual:0.20,gold:0.05,fd:0.05}};
+    const t=targets[body.risk];
+    const curr={stocks:body.stocks,mutual:body.mutual,gold:body.gold,fd:body.fd};
+    const changes={},ctgt={},ccurr={};
+    ['stocks','mutual','gold','fd'].forEach(k=>{changes[k]=Math.round(t[k]*total-curr[k]);ctgt[k]=Math.round(t[k]*100);ccurr[k]=total>0?Math.round(curr[k]/total*100):0;});
+    d={changes,targets:ctgt,current:ccurr,ai_advice:'Rebalancing systematically is proven to improve risk-adjusted returns over time. Consider tax implications — LTCG on equity funds held >1 year is taxed at 10% above ₹1L gains.'};
+  }
+  const names={stocks:'📈 Stocks',mutual:'🏦 Mutual Funds',gold:'🪙 Gold',fd:'🔒 Fixed Deposit'};
+  const keys=['stocks','mutual','gold','fd'];
+  const rows=keys.map(k=>{
+    const ch=d.changes[k];
+    const cls=ch>0?'change-up':ch<0?'change-down':'change-flat';
+    const sym=ch>0?'↑ Increase by ':ch<0?'↓ Reduce by ':'No change';
+    return `<tr>
+      <td>${names[k]}</td>
+      <td style="color:var(--slate);font-family:var(--ff-mono);font-size:12px">${d.current[k]}% → ${d.targets[k]}%</td>
+      <td class="${cls}">${sym}${ch!==0?fmt(Math.abs(ch)):''}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('r-results').innerHTML=`
+    <div class="panel-label">Rebalancing plan</div>
+    <table class="rebal-table reveal d1">
+      <thead><tr><th>Asset</th><th>Allocation</th><th>Action</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="chart-wrap" style="height:200px;margin:20px 0">
+      <canvas id="rebal-chart" role="img" aria-label="Before and after rebalancing comparison chart">Rebalancing chart</canvas>
+    </div>
+    <div class="advisor-box reveal d3">
+      <div class="advisor-header">
+        <div class="advisor-avatar">A</div>
+        <div><div class="advisor-name">Aurum Advisor</div><div class="advisor-role">Portfolio Optimisation</div></div>
+      </div>
+      <div class="advisor-text" id="r-advice"></div>
+    </div>
+  `;
+
+  const colors=['#378ADD','#c8a96e','#f5b944','#4ade9e'];
+  destroyChart('rebal');
+  charts['rebal']=new Chart(document.getElementById('rebal-chart'),{
+    type:'bar',
+    data:{
+      labels:['Stocks','Mutual Funds','Gold','Fixed Deposit'],
+      datasets:[
+        {label:'Current %',data:keys.map(k=>d.current[k]),backgroundColor:colors.map(c=>c+'55'),borderColor:colors,borderWidth:1.5,borderRadius:6},
+        {label:'Target %',data:keys.map(k=>d.targets[k]),backgroundColor:colors.map(c=>c+'22'),borderColor:colors,borderWidth:1,borderRadius:6,borderDash:[4,4]}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,16,32,0.95)',borderColor:'rgba(200,169,110,0.3)',borderWidth:1,titleColor:'#c8a96e',bodyColor:'#b0baca',callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'%'}}},
+      scales:{x:{ticks:{color:'#8b96ab',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b96ab',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+  typeText(document.getElementById('r-advice'),d.ai_advice);
+  btn.classList.remove('loading'); btn.textContent='⚡ Suggest Rebalance';
+}
+
+/* ══════════════════════════════════════════
+   4. CRASH SIMULATOR
+══════════════════════════════════════════ */
+async function runCrash(){
+  const drop=+document.getElementById('c-drop').value;
+  const body={
+    stocks:+document.getElementById('c-stocks').value,
+    mutual:+document.getElementById('c-mf').value,
+    gold:+document.getElementById('c-gold').value,
+    fd:+document.getElementById('c-fd').value,
+    drop_pct:drop,
+  };
+  const total=body.stocks+body.mutual+body.gold+body.fd;
+  let d;
+  try { d=await callAPI('/api/crash-simulator',body); }
+  catch(e){
+    const f=drop/100;
+    const after={stocks:Math.round(body.stocks*(1-f)),mutual:Math.round(body.mutual*(1-f*0.8)),gold:Math.round(body.gold*(1+f*0.3)),fd:Math.round(body.fd)};
+    const nt=Object.values(after).reduce((a,b)=>a+b,0);
+    d={before:{...body,total},after:{...after,total:nt},loss:Math.round(total-nt),loss_pct:Math.round((total-nt)/total*100),
+       ai_advice:`A ${drop}% crash is painful but temporary. Do NOT panic sell — staying invested through downturns historically yields the best long-term returns.`};
+  }
+
+  document.getElementById('c-results').innerHTML=`
+    <div class="panel-label">Stress test — ${drop}% market drop</div>
+    <div class="crash-grid reveal d1">
+      <div class="crash-card"><div class="crash-lbl">Before crash</div><div class="crash-val neutral">${fmtCr(d.before.total)}</div></div>
+      <div class="crash-card"><div class="crash-lbl">After crash</div><div class="crash-val loss">${fmtCr(d.after.total)}</div></div>
+      <div class="crash-card"><div class="crash-lbl">Total loss</div><div class="crash-val loss">-${fmtCr(d.loss)}</div></div>
+      <div class="crash-card"><div class="crash-lbl">Stocks impact</div><div class="crash-val loss">-${drop}%</div></div>
+      <div class="crash-card"><div class="crash-lbl">Gold (hedge)</div><div class="crash-val gain">+${Math.round(drop*0.3)}%</div></div>
+      <div class="crash-card"><div class="crash-lbl">FD (safe)</div><div class="crash-val gain">Unaffected</div></div>
+    </div>
+    <div class="chart-wrap" style="height:200px;margin-bottom:20px">
+      <canvas id="crash-chart" role="img" aria-label="Bar chart comparing before and after crash portfolio values by asset">Crash comparison chart</canvas>
+    </div>
+    <div class="advisor-box reveal d3">
+      <div class="advisor-header">
+        <div class="advisor-avatar">A</div>
+        <div><div class="advisor-name">Aurum Advisor</div><div class="advisor-role">Risk & Resilience Analysis</div></div>
+      </div>
+      <div class="advisor-text" id="c-advice"></div>
+    </div>
+  `;
+
+  const colors=['#378ADD','#c8a96e','#f5b944','#4ade9e'];
+  const labels=['Stocks','Mutual Funds','Gold','Fixed Deposit'];
+  const bef=[d.before.stocks,d.before.mutual,d.before.gold,d.before.fd];
+  const aft=[d.after.stocks,d.after.mutual,d.after.gold,d.after.fd];
+  destroyChart('crash');
+  charts['crash']=new Chart(document.getElementById('crash-chart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Before',data:bef,backgroundColor:colors.map(c=>c+'55'),borderColor:colors,borderWidth:1.5,borderRadius:6},
+      {label:'After',data:aft,backgroundColor:colors.map(c=>c+'22'),borderColor:colors,borderWidth:1,borderRadius:6}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,16,32,0.95)',borderColor:'rgba(200,169,110,0.3)',borderWidth:1,titleColor:'#c8a96e',bodyColor:'#b0baca',callbacks:{label:ctx=>ctx.dataset.label+': '+fmtCr(ctx.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8b96ab',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b96ab',font:{size:10},callback:v=>fmtCr(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+  typeText(document.getElementById('c-advice'),d.ai_advice);
+}
+
+/* ══════════════════════════════════════════
+   5. SIP CALCULATOR (no AI needed — pure math)
+══════════════════════════════════════════ */
+function runSIP(){
+  const amt=+document.getElementById('s-amt').value||5000;
+  const ret=(+document.getElementById('s-ret').value||12)/100/12;
+  const yrs=+document.getElementById('s-yrs').value||10;
+  const step=(+document.getElementById('s-step').value||10)/100;
+
+  let total=0, invested=0, monthly=amt;
+  const labels=[], projData=[], invData=[];
+  for(let y=1;y<=yrs;y++){
+    for(let m=0;m<12;m++){ total=(total+monthly)*(1+ret); invested+=monthly; }
+    labels.push('Yr '+y); projData.push(Math.round(total)); invData.push(Math.round(invested));
+    monthly=Math.round(monthly*(1+step));
+  }
+  const returns=Math.round(total-invested);
+
+  document.getElementById('s-stats').innerHTML=`
+    <div class="stat-card"><span class="stat-icon">💰</span><div class="stat-lbl">Total invested</div><div class="stat-val">${fmtCr(invested)}</div></div>
+    <div class="stat-card"><span class="stat-icon">📈</span><div class="stat-lbl">Wealth gained</div><div class="stat-val" style="color:var(--green)">+${fmtCr(returns)}</div></div>
+    <div class="stat-card"><span class="stat-icon">🏆</span><div class="stat-lbl">Final corpus</div><div class="stat-val" style="color:var(--gold-2)">${fmtCr(total)}</div></div>
+  `;
+
+  destroyChart('sip');
+  charts['sip']=new Chart(document.getElementById('sip-chart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Portfolio value',data:projData,borderColor:'#c8a96e',backgroundColor:'rgba(200,169,110,0.08)',fill:true,tension:0.4,pointRadius:2,borderWidth:2},
+      {label:'Invested',data:invData,borderColor:'rgba(139,150,171,0.4)',backgroundColor:'transparent',borderDash:[4,4],tension:0,pointRadius:0,borderWidth:1.5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(13,16,32,0.95)',borderColor:'rgba(200,169,110,0.3)',borderWidth:1,titleColor:'#c8a96e',bodyColor:'#b0baca',callbacks:{label:ctx=>ctx.dataset.label+': '+fmtCr(ctx.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8b96ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b96ab',font:{size:10},callback:v=>fmtCr(v)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+/* ══════════════════════════════════════════
+   6. SUGGESTIONS
+══════════════════════════════════════════ */
+async function runSuggest(){
+  const btn=document.getElementById('sg-btn');
+  btn.classList.add('loading'); btn.textContent='Fetching...';
+  const body={
+    experience: document.getElementById('sg-exp').value,
+    horizon: document.getElementById('sg-horizon').value,
+  };
+  let d;
+  try { d=await callAPI('/api/suggestions',body); }
+  catch(e){
+    const static_data={
+      beginner:{medium:[
+        {name:'Nifty 50 Index Fund',description:'Own India\'s top 50 companies via low-cost SIP. No stock-picking needed.',risk:'Medium',return_range:'11–13%'},
+        {name:'PPF (Public Provident Fund)',description:'Government-backed, 7.1% tax-free return, 15-year horizon. Ideal anchor.',risk:'Low',return_range:'7.1%'},
+        {name:'Balanced Advantage Fund',description:'Auto-rebalances equity and debt based on market valuations.',risk:'Medium',return_range:'9–11%'},
+        {name:'ELSS (Tax-saving Fund)',description:'Save ₹1.5L tax under 80C while building equity wealth over time.',risk:'Medium',return_range:'11–14%'},
+      ]},
+      intermediate:{medium:[
+        {name:'Multi-cap Mutual Fund',description:'Diversified across large, mid and small-cap in a single fund.',risk:'Medium',return_range:'12–15%'},
+        {name:'Sovereign Gold Bonds (SGB)',description:'2.5% annual interest plus gold price appreciation, government-backed.',risk:'Low',return_range:'8–12%'},
+        {name:'REIT (Real Estate Investment Trust)',description:'Commercial real estate exposure with quarterly dividend income.',risk:'Medium',return_range:'8–10%'},
+        {name:'NPS Tier-1',description:'Retirement corpus plus extra ₹50k tax deduction under 80CCD(1B).',risk:'Medium',return_range:'9–11%'},
+      ]},
+      advanced:{long:[
+        {name:'Momentum Factor Index Fund',description:'Nifty 200 Momentum 30 — historically 5% alpha over Nifty 50.',risk:'High',return_range:'15–18%'},
+        {name:'International Index Fund (US/NASDAQ)',description:'Exposure to Apple, Google, Microsoft with natural currency hedge.',risk:'Medium',return_range:'10–14%'},
+        {name:'Direct Equity (Blue Chip SIP)',description:'Hold 8–10 quality businesses for 10+ years without panic selling.',risk:'High',return_range:'14–18%'},
+        {name:'PMS (Portfolio Management Service)',description:'Actively managed concentrated portfolio for ₹50L+ surplus.',risk:'High',return_range:'15–20%'},
+      ]}
+    };
+    const exp=body.experience, hor=body.horizon;
+    const items=(static_data[exp]&&static_data[exp][hor])||(static_data[exp]&&Object.values(static_data[exp])[0])||static_data.intermediate.medium;
+    d={suggestions:items};
+  }
+
+  const riskClass=r=>r==='Low'?'risk-low':r==='High'?'risk-high':'risk-medium';
+  document.getElementById('sg-grid').innerHTML=(d.suggestions||[]).map(s=>`
+    <div class="suggest-card reveal d1">
+      <div class="suggest-name">${s.name}</div>
+      <div class="suggest-desc">${s.description}</div>
+      ${s.why ? `<div style="font-size:11px;color:rgba(200,169,110,0.7);margin-bottom:10px;line-height:1.5;font-style:italic">💡 ${s.why}</div>` : ''}
+      <div class="suggest-tags">
+        <span class="stag ${riskClass(s.risk)}">${s.risk} risk</span>
+        <span class="stag">${s.return_range} CAGR</span>
+      </div>
+    </div>
+  `).join('');
+  btn.classList.remove('loading'); btn.textContent='⚡ Get Suggestions';
+}
+
+/* ══════════════════════════════════════════
+   USER AUTH & NAV
+══════════════════════════════════════════ */
+let currentUser = null;
+
+async function loadUser() {
+  try {
+    const res  = await fetch('/api/auth/me');
+    const data = await res.json();
+    currentUser = data.logged_in ? data : null;
+    renderNavAuth();
+    if (currentUser) {
+      document.getElementById('chat-badge').style.display = 'block';
+    }
+  } catch(e) { currentUser = null; renderNavAuth(); }
+}
+
+function renderNavAuth() {
+  const el = document.getElementById('nav-auth');
+  if (!el) return;
+
+  if (currentUser) {
+    const name = currentUser.name || 'User';
+    const email = currentUser.email || '';
+
+    el.innerHTML = `
+      <div class="profile-menu">
+
+        <button class="profile-trigger" onclick="toggleProfileMenu()">
+
+          <span class="profile-avatar">
+            ${name.charAt(0).toUpperCase()}
+          </span>
+
+          <span class="profile-name">
+            ${name}
+          </span>
+
+          <span class="profile-arrow">▼</span>
+
+        </button>
+
+        <div id="profileDropdown" class="profile-dropdown">
+
+          <div class="profile-header">
+
+            <div class="profile-avatar large">
+              ${name.charAt(0).toUpperCase()}
+            </div>
+
+            <div>
+              <div class="profile-user-name">
+                ${name}
+              </div>
+
+              <div class="profile-email">
+                ${email}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="profile-divider"></div>
+
+          <button class="profile-option" onclick="openProfile()">
+            <span>👤</span>
+            <span>My Profile</span>
+          </button>
+
+          <div class="profile-email-option">
+            <span>✉️</span>
+            <span>${email}</span>
+          </div>
+
+          <button class="profile-option" onclick="openSettings()">
+            <span>⚙️</span>
+            <span>Settings</span>
+          </button>
+
+          <div class="profile-divider"></div>
+
+          <button class="profile-option logout-option" onclick="doLogout()">
+            <span>🚪</span>
+            <span>Sign Out</span>
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+  } else {
+
+    el.innerHTML = `
+      <a href="/login"
+        style="
+          padding:8px 20px;
+          border-radius:100px;
+          background:linear-gradient(135deg,#8a6c1e,var(--gold));
+          color:var(--ink);
+          font-family:'Syne',sans-serif;
+          font-size:11px;
+          font-weight:700;
+          letter-spacing:1.5px;
+          text-transform:uppercase;
+          text-decoration:none;
+          transition:all 0.3s;
+        "
+        onmouseover="this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.transform='translateY(0)'">
+        Sign In →
+      </a>
+    `;
+  }
+}
+
+function toggleProfileMenu() {
+
+  const dropdown = document.getElementById('profileDropdown');
+
+  if (!dropdown) return;
+
+  dropdown.classList.toggle('show');
+
+}
+document.addEventListener('click', function(event) {
+
+  const menu = document.querySelector('.profile-menu');
+  const dropdown = document.getElementById('profileDropdown');
+
+  if (!menu || !dropdown) return;
+
+  if (!menu.contains(event.target)) {
+    dropdown.classList.remove('show');
+  }
+
+});
+
+
+
+async function doLogout() {
+  await fetch('/api/auth/logout', {method:'POST'});
+  currentUser = null;
+  renderNavAuth();
+  document.getElementById('chat-badge').style.display = 'none';
+}
+
+/* ══════════════════════════════════════════
+   AI CHAT
+══════════════════════════════════════════ */
+let chatOpen    = false;
+let chatHistory = [];  // {role, content}
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const panel  = document.getElementById('chat-panel');
+  const bubble = document.getElementById('chat-bubble');
+  panel.style.display  = chatOpen ? 'flex' : 'none';
+  bubble.style.transform = chatOpen ? 'scale(0.85)' : 'scale(1)';
+  if (chatOpen) document.getElementById('chat-input').focus();
+}
+
+function appendChatMsg(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const isAI = role === 'assistant';
+  const div   = document.createElement('div');
+  div.className = 'chat-msg ' + (isAI ? 'ai' : 'user');
+  div.style.cssText = isAI
+    ? 'background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.15);border-radius:14px 14px 14px 4px;padding:14px 16px;font-size:13px;color:#b0baca;line-height:1.7;max-width:90%;align-self:flex-start'
+    : 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:14px 14px 4px 14px;padding:12px 16px;font-size:13px;color:#dce8f5;line-height:1.6;max-width:90%;align-self:flex-end;margin-left:auto';
+  div.textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function showChatTyping() {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'chat-typing';
+  div.style.cssText = 'background:rgba(200,169,110,0.05);border:1px solid rgba(200,169,110,0.1);border-radius:14px 14px 14px 4px;padding:14px 16px;font-size:13px;color:rgba(139,150,171,0.6);align-self:flex-start;font-style:italic';
+  div.textContent = 'Aurum is thinking…';
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function removeChatTyping() {
+  const el = document.getElementById('chat-typing');
+  if (el) el.remove();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('chat-send-btn');
+  btn.disabled = true;
+  input.value  = '';
+
+  appendChatMsg('user', text);
+  chatHistory.push({role:'user', content:text});
+
+  showChatTyping();
+
+  try {
+    const res  = await fetch('/api/ai-chat', {
+      method:  'POST',
+      headers: {'Content-Type':'application/json'},
+      body:    JSON.stringify({message: text, history: chatHistory.slice(-6)})
+    });
+    const data = await res.json();
+    removeChatTyping();
+    const reply = data.reply || 'Sorry, I could not get a response. Please try again.';
+    appendChatMsg('assistant', reply);
+    chatHistory.push({role:'assistant', content:reply});
+  } catch(e) {
+    removeChatTyping();
+    appendChatMsg('assistant', '⚠️ Network error. Please check your connection and try again.');
+  }
+
+  btn.disabled = false;
+  input.focus();
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  runSIP();
+  runSuggest();
+  loadUser();
+
+  // Chat bubble hover effect
+  const bubble = document.getElementById('chat-bubble');
+  bubble.addEventListener('mouseover', () => { if(!chatOpen) bubble.style.transform='scale(1.12)'; });
+  bubble.addEventListener('mouseout',  () => { if(!chatOpen) bubble.style.transform='scale(1)'; });
+});
+</script>
+</body>
+</html>

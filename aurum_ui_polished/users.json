@@ -1,0 +1,15 @@
+{
+  "shabenoorhassan589@gmail.com": {
+    "name": "test user",
+    "email": "shabenoorhassan589@gmail.com",
+    "password": "scrypt:32768:8:1$t2V2mxHHHhjSLbbd$c97237741814e08b0e97cd3582eeeed50ca1d0ae04070734d8c0bc49602cade94667d84e71b7e51a627e5cb19483490b8c3ea9c8d6bf63c83375e76768141e64",
+    "created_at": "2026-08-18T16:58:47.083770",
+    "profile": {
+      "risk_profile": "moderate",
+      "monthly_income": 0,
+      "monthly_expenses": 0,
+      "investment_goal": "wealth"
+    },
+    "history": []
+  }
+}
